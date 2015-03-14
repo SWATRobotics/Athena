@@ -1,5 +1,6 @@
 #include "WPILib.h"
 #include "NetworkTables/NetworkTable.h"
+#include "Atm1.cpp"
 
 class Robot: public IterativeRobot
 {
@@ -43,38 +44,63 @@ private:
 
 	}
 
-//	int Counter;
-//	int stage;
-//	int stageTime[2] = {1000, 2000};
-//	int MaxStageNumber;
-//	void AutonomousInit()
-//	{
-//		Counter = 1;
-//		stage = 0;
-//		MaxStageNumber = 2;
-//	}
-//
-//	bool CheckCounter(int Max){if(Counter <= Max){Counter += 50; return true;}else{Counter = 1; return false;}}
-//	void AutonomousPeriodic()
-//	{
-//		if (this->stage < this->MaxStageNumber)
-//		{
-//			if (this->CheckCounter(stageTime[stage]))
-//			{
-//				switch (this->stage)
-//				{
-//				case 0:
-//					break;
-//				case 0:
-//					break;
-//				}
-//			}
-//			else
-//			{
-//				this->stage++;
-//			}
-//		}
-//	}
+	int pointer = 0;
+	void AutonomousInit()
+	{
+		pointer = 0;
+	}
+
+	void AutonomousPeriodic()
+	{
+		if (pointer >= 596)
+		{
+			return;
+		}
+
+		float leftInput = Atm1[pointer][0];
+		float rightInput = Atm1[pointer][1];
+		float elevatorInput = Atm1[pointer][2];
+		int wheelInput = (int)Atm1[pointer][3];
+		int lowerClaw = (int)Atm1[pointer][4];
+		int upperClaw = (int)Atm1[pointer][5];
+
+		pointer++;
+
+		this->rdF.SetLeftRightMotorOutputs(leftInput, rightInput);
+		this->rdR.SetLeftRightMotorOutputs(leftInput, rightInput);
+
+		if ((elevatorInput < 0) && (!this->diMaxSwitch.Get()))//elevator up
+		{ this->vctE.Set(0); }
+		else if ((elevatorInput > 0) && (!this->diMinSwitch.Get()))//elevator down
+		{ this->vctE.Set(0); }
+		else
+		{ this->vctE.Set(elevatorInput); }
+
+		if (wheelInput == 1)//In
+		{ this->vctR.Set(-1); this->vctF.Set(1); }
+		else if (wheelInput == -1)//Out
+		{ this->vctR.Set(1); this->vctF.Set(-1); }
+		else
+		{ this->vctR.Set(0); this->vctF.Set(0); }
+
+		//kForward: 1; kReverse: -1;
+		if (lowerClaw == 1)//Close
+		{ this->ds1.Set(DoubleSolenoid::kForward); }
+		else if (lowerClaw == -1)//Open
+		{ this->ds1.Set(DoubleSolenoid::kReverse); }
+		else
+		{ this->ds1.Set(DoubleSolenoid::kOff); }
+
+		//kForward: 1; kReverse = -1;
+		if (upperClaw == 1)
+		{ this->ds2.Set(DoubleSolenoid::kForward); }
+		else if (upperClaw == -1)
+		{ this->ds2.Set(DoubleSolenoid::kReverse); }
+		else
+		{ this->ds2.Set(DoubleSolenoid::kOff); }
+
+		Wait(0.01);
+	}
 
 	void TeleopInit()
 	{
@@ -218,7 +244,7 @@ private:
 //		}
 //		else
 //		{ this->ds1.Set(DoubleSolenoid::kOff); }
-		this->Drive();
+//		this->Drive();
 
 //		double NTe = this->table->GetNumber("E", 0.0);
 //		float elevatorInput = this->jsE.GetY();
@@ -228,30 +254,72 @@ private:
 //		{ this->vctE.Set(0); }
 //		else
 //		{ this->vctE.Set(elevatorInput); }
+		///////////////////////////////////////////////////////////////
 
-		this->table->PutNumber("E", 1.0);
-		printf("PutNumber\n");
+//		this->table->PutNumber("E", 1.0);
+//		printf("PutNumber\n");
+//
+//		if (this->jsR.GetRawButton(2))//In
+//		{ this->vctR.Set(-1); this->vctF.Set(1); }
+//		else if (this->jsR.GetRawButton(3))//Out
+//		{ this->vctR.Set(1); this->vctF.Set(-1); }
+//		else
+//		{ this->vctR.Set(0); this->vctF.Set(0); }
+//
+//		if (this->jsR.GetRawButton(4))//Close
+//		{ this->ds1.Set(DoubleSolenoid::kForward); }
+//		else if (this->jsR.GetRawButton(5))//Open
+//		{ this->ds1.Set(DoubleSolenoid::kReverse); }
+//		else
+//		{ this->ds1.Set(DoubleSolenoid::kOff); }
+//
+//		if (this->jsE.GetRawButton(4))
+//		{ this->ds2.Set(DoubleSolenoid::kForward); }
+//		else if (this->jsE.GetRawButton(5))
+//		{ this->ds2.Set(DoubleSolenoid::kReverse); }
+//		else
+//		{ this->ds2.Set(DoubleSolenoid::kOff); }
 
+		float leftInput = -1 * this->jsL.GetY();
+		float rightInput = -1 * this->jsR.GetY();
+		this->rdF.SetLeftRightMotorOutputs(leftInput, rightInput);
+		this->rdR.SetLeftRightMotorOutputs(leftInput, rightInput);
+
+		float elevatorInput = this->jsE.GetY();
+		if ((elevatorInput < 0) && (!this->diMaxSwitch.Get()))//elevator up
+		{ this->vctE.Set(0); }
+		else if ((elevatorInput > 0) && (!this->diMinSwitch.Get()))//elevator down
+		{ this->vctE.Set(0); }
+		else
+		{ this->vctE.Set(elevatorInput); }
+
+		int wheelInput = 0;
 		if (this->jsR.GetRawButton(2))//In
-		{ this->vctR.Set(-1); this->vctF.Set(1); }
+		{ this->vctR.Set(-1); this->vctF.Set(1); wheelInput = 1; }
 		else if (this->jsR.GetRawButton(3))//Out
-		{ this->vctR.Set(1); this->vctF.Set(-1); }
+		{ this->vctR.Set(1); this->vctF.Set(-1); wheelInput = -1; }
 		else
-		{ this->vctR.Set(0); this->vctF.Set(0); }
+		{ this->vctR.Set(0); this->vctF.Set(0); wheelInput = 0; }
 
+		int lowerClaw = 0;//kForward: 1; kReverse: -1;
 		if (this->jsR.GetRawButton(4))//Close
-		{ this->ds1.Set(DoubleSolenoid::kForward); }
+		{ this->ds1.Set(DoubleSolenoid::kForward); lowerClaw = 1; }
 		else if (this->jsR.GetRawButton(5))//Open
-		{ this->ds1.Set(DoubleSolenoid::kReverse); }
+		{ this->ds1.Set(DoubleSolenoid::kReverse); lowerClaw = -1; }
 		else
-		{ this->ds1.Set(DoubleSolenoid::kOff); }
+		{ this->ds1.Set(DoubleSolenoid::kOff); lowerClaw = 0; }
 
+		int upperClaw = 0;//kForward: 1; kReverse = -1;
 		if (this->jsE.GetRawButton(4))
-		{ this->ds2.Set(DoubleSolenoid::kForward); }
+		{ this->ds2.Set(DoubleSolenoid::kForward); upperClaw = 1;}
 		else if (this->jsE.GetRawButton(5))
-		{ this->ds2.Set(DoubleSolenoid::kReverse); }
+		{ this->ds2.Set(DoubleSolenoid::kReverse); upperClaw = -1; }
 		else
-		{ this->ds2.Set(DoubleSolenoid::kOff); }
+		{ this->ds2.Set(DoubleSolenoid::kOff); upperClaw = 0;}
+
+		printf("		{%f, %f, %f, %d, %d, %d},\n", leftInput, rightInput, elevatorInput, wheelInput, lowerClaw, upperClaw);
+
+	    Wait(0.01);
 	}
 };
 
