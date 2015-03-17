@@ -52,7 +52,7 @@ private:
 
 	void AutonomousPeriodic()
 	{
-		if (pointer >= 596)
+		if (pointer >= 601)
 		{
 			return;
 		}
